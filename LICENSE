@@ -1,0 +1,96 @@
+Problem Statement 2:
+
+To achieve two of the objectives using Bash and Python, I'll create scripts for:
+1.System Health Monitoring Script using Bash.
+2. Application Health Checker using Python.
+
+
+1. System Health Monitoring Script (Bash)
+This script will monitor CPU usage, memory usage, disk space, and running processes. If any metric exceeds a predefined threshold, it will log an alert to a file.
+
+#!/bin/bash
+
+# Define thresholds
+CPU_THRESHOLD=80
+MEM_THRESHOLD=80
+DISK_THRESHOLD=80
+
+# Log file
+LOG_FILE="./system_health.log"
+
+# Function to check CPU usage
+check_cpu() {
+    CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}')
+    if (( $(echo "$CPU_USAGE > $CPU_THRESHOLD" | bc -l) )); then
+        echo "$(date): CPU usage is above $CPU_THRESHOLD%: ${CPU_USAGE}%" >> $LOG_FILE
+    else
+        echo "$(date): CPU usage is normal: ${CPU_USAGE}%" >> $LOG_FILE
+    fi
+}
+
+# Function to check memory usage
+check_memory() {
+    MEM_USAGE=$(free | grep Mem | awk '{print $3/$2 * 100.0}')
+    if (( $(echo "$MEM_USAGE > $MEM_THRESHOLD" | bc -l) )); then
+        echo "$(date): Memory usage is above $MEM_THRESHOLD%: ${MEM_USAGE}%" >> $LOG_FILE
+    else
+        echo "$(date): Memory usage is normal: ${MEM_USAGE}%" >> $LOG_FILE
+    fi
+}
+
+# Function to check disk usage
+check_disk() {
+    DISK_USAGE=$(df -h / | grep / | awk '{print $5}' | sed 's/%//')
+    if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD" ]; then
+        echo "$(date): Disk usage is above $DISK_THRESHOLD%: ${DISK_USAGE}%" >> $LOG_FILE
+    else
+        echo "$(date): Disk usage is normal: ${DISK_USAGE}%" >> $LOG_FILE
+    fi
+}
+
+# Function to log number of running processes
+check_processes() {
+    PROCESS_COUNT=$(ps aux | wc -l)
+    echo "$(date): Running processes: ${PROCESS_COUNT}" >> $LOG_FILE
+}
+
+# Run all checks
+check_cpu
+check_memory
+check_disk
+check_processes
+
+echo "System health check complete. Results are logged in $LOG_FILE"
+
+2. Application Health Checker (Python)
+This script will check the uptime of an application by sending an HTTP request and analyzing the response code to determine if the application is up or down.
+
+#!/usr/bin/env python3
+
+import requests
+import logging
+import datetime
+
+# Configuration
+URL = "http://your-application-url.com"  # Replace with the actual URL of your application
+LOG_FILE = "./app_health.log"
+
+# Setup logging
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
+def check_application_health():
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        response = requests.get(URL, timeout=10)
+        if response.status_code == 200:
+            logging.info(f"{timestamp}: Application is UP. Status code: {response.status_code}")
+            print(f"Application is UP. Status code: {response.status_code}")
+        else:
+            logging.warning(f"{timestamp}: Application is DOWN. Status code: {response.status_code}")
+            print(f"Application is DOWN. Status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"{timestamp}: Application is DOWN. Error: {e}")
+        print(f"Application is DOWN. Error: {e}")
+
+if __name__ == "__main__":
+    check_application_health()
